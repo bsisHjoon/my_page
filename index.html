@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>우리 학교 앱</title>
+  <style>
+    body { font-family: sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
+    h1 { font-size: 24px; }
+    h2 { font-size: 18px; margin-top: 32px; }
+    input, textarea { width: 100%; padding: 8px; margin: 4px 0; box-sizing: border-box; }
+    button { padding: 8px 16px; cursor: pointer; }
+    .card { border: 1px solid #ddd; padding: 12px; margin: 8px 0; border-radius: 6px; }
+    .card h3 { margin: 0 0 6px; font-size: 16px; }
+    .menu { margin: 0; padding-left: 18px; }
+    .empty { color: #888; }
+  </style>
+</head>
+<body>
+
+
+  <h1>🏫 우리 학교 앱</h1>
+
+
+  <h2>오늘 급식</h2>
+  <div id="meal">불러오는 중...</div>
+
+
+  <h2>메모장</h2>
+  <input id="title" placeholder="제목">
+  <textarea id="content" placeholder="내용"></textarea>
+  <button onclick="createMemo()">저장하기</button>
+
+
+  <div id="list"></div>
+
+
+<script>
+// 같은 서버가 이 화면도 내려주므로 주소를 비워둔다
+const API = "";
+
+
+// ── 급식 ──────────────────────────────
+async function loadMeal() {
+  const box = document.getElementById("meal");
+
+
+  const res = await fetch(API + "/meal");
+
+
+  if (!res.ok) {
+    box.innerHTML = '<p class="empty">오늘은 급식 정보가 없습니다.</p>';
+    return;
+  }
+
+
+  const meals = await res.json();
+
+
+  box.innerHTML = "";
+  for (const meal of meals) {
+    let items = "";
+    for (const m of meal.menu) {
+      items += `<li>${m}</li>`;
+    }
+    box.innerHTML += `
+      <div class="card">
+        <h3>${meal.type}</h3>
+        <ul class="menu">${items}</ul>
+      </div>
+    `;
+  }
+}
+
+
+// ── 메모 ──────────────────────────────
+async function loadMemos() {
+  const res = await fetch(API + "/memos");
+  const memos = await res.json();
+
+
+  const list = document.getElementById("list");
+
+
+  if (memos.length === 0) {
+    list.innerHTML = '<p class="empty">아직 메모가 없어요.</p>';
+    return;
+  }
+
+
+  list.innerHTML = "";
+  for (const memo of memos) {
+    list.innerHTML += `
+      <div class="card">
+        <h3>${memo.title}</h3>
+        <p>${memo.content}</p>
+        <button onclick="deleteMemo(${memo.id})">삭제</button>
+      </div>
+    `;
+  }
+}
+
+
+async function createMemo() {
+  const title = document.getElementById("title").value;
+  const content = document.getElementById("content").value;
+
+
+  if (!title) {
+    alert("제목을 입력하세요");
+    return;
+  }
+
+
+  await fetch(API + "/memos", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title: title, content: content })
+  });
+
+
+  document.getElementById("title").value = "";
+  document.getElementById("content").value = "";
+  loadMemos();
+}
+
+
+async function deleteMemo(id) {
+  await fetch(API + "/memos/" + id, { method: "DELETE" });
+  loadMemos();
+}
+
+
+// 페이지가 열리면 둘 다 불러온다
+loadMeal();
+loadMemos();
+</script>
+</body>
+</html>
